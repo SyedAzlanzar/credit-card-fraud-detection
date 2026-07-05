@@ -1,15 +1,15 @@
 # Credit Card Fraud Detection: Resampling & Processing Engine
-> *This repository is currently under active development. The data ingestion and resampling pipelines are complete, and we are currently staging for the machine learning modeling phase.*
+> *This repository is currently under active development. Data ingestion, resampling pipelines, and baseline machine learning classifications are complete. Currently staging for hyperparameter tuning and model evaluation.*
 
-A modular, memory-efficient Python pipeline engineered to process and balance highly skewed financial datasets. Designed specifically for low-resource hardware constraints, this project implements robust data ingestion, feature scaling, and advanced algorithmic resampling techniques (SMOTE & Undersampling) to prepare raw Kaggle credit card transaction data for future machine learning classification.
+A modular, memory-efficient Python pipeline engineered to process and balance highly skewed financial datasets. Designed specifically for low-resource hardware constraints, this project implements robust data ingestion, feature scaling, advanced algorithmic resampling (SMOTE), and baseline classification to detect fraudulent credit card transactions.
 
 ---
 ## 📅 Project Roadmap
 This project is being built progressively to ensure high code quality and mathematical rigor at each step.
 
 * [x] **Day 1: System Architecture & Ingestion** — Structuring the repository, optimizing memory usage (`float64` to `float32`), and implementing leakage-proof Train/Test splits.
-* [x] **Day 2: The Equalizer (Current)** — Handling the 319:1 class imbalance using Imbalanced-Learn pipelines (Targeted Undersampling + SMOTE).
-* [ ] **Day 3: Baseline Modeling** — Building and testing Logistic Regression and Random Forest classifiers.
+* [x] **Day 2: The Equalizer** — Handling the 319:1 class imbalance using Imbalanced-Learn pipelines (Targeted Undersampling + SMOTE).
+* [x] **Day 3: Baseline Modeling (Current)** — Building, training, and serializing Logistic Regression and Random Forest classifiers on the balanced data.
 * [ ] **Day 4: Evaluation & Tuning** — Hyperparameter tuning via Randomized Search and generating Precision-Recall matrices.
 * [ ] **Day 5: Orchestration & Deployment** — Finalizing the `main.py` pipeline and deploying the saved `.joblib` model via a lightweight API.
 
@@ -17,6 +17,7 @@ This project is being built progressively to ensure high code quality and mathem
 ## 🔗 System Components
 * 💾 **[Data Prep Module](src/data_prep.py)**: Memory-optimized data loader, train/test allocator, and outlier-resistant feature scaler.
 * ⚖️ **[Resampling Module](src/resampling.py)**: Mathematical class equalizer utilizing synthetic generation and targeted downsampling.
+* 🧠 **[Model Engine](src/model.py)**: The core machine learning training, prediction, and serialization module.
 * 📦 **[Requirements](requirements.txt)**: Strict dependency tracker ensuring environment reproducibility.
 
 ---
@@ -28,8 +29,8 @@ flowchart TD
     
     subgraph Data Ingestion Layer [src/data_prep.py]
         Pipeline -->|Reads CSV via Pandas| RawData[Kaggle Dataset: 284k rows]
-        RawData -->|Downcast float64 to float32| MemOpt[Memory Optimization]
-        MemOpt -->|Split 80/20| Split[Train/Test Split]
+        RawData -->|Memory Optimization| MemOpt[Downcast to float32]
+        MemOpt -->|Train/Test Split| Split[80/20 Separation]
         Split -->|Isolate test data| TestSet[(X_test, y_test: Locked)]
         Split -->|RobustScaler| Scaler[Scaled Training Data]
     end
@@ -40,9 +41,12 @@ flowchart TD
         Imbalance -->|Synthesize Minority Class| Over[SMOTE Oversampling]
     end
 
-    subgraph Processed Data Matrix
-        Under & Over -->|Combined Pipeline| BalancedOut[(Balanced X_train, y_train)]
-        BalancedOut -.->|Ready for ML Modeling| ML[🚧 Staging for Phase 3: Classification]
+    subgraph Machine Learning Engine [src/model.py]
+        Under & Over -->|Balanced Data| ML[Classifier Training]
+        ML -->|Fast Baseline| LR[Logistic Regression]
+        ML -->|Hardware-Restricted Ensemble| RF[Random Forest]
+        LR & RF -->|Generate Guesses| TestSet
+        RF -->|Serialize State| Joblib[(random_forest_fraud_model.joblib)]
     end
 
 ```
@@ -52,19 +56,20 @@ flowchart TD
 ## ✨ Key Features (Implemented)
 
 * **Memory-Optimized Ingestion:** Programmatically downcasts natively heavy 64-bit float arrays to 32-bit and 8-bit integers, effectively cutting RAM consumption in half to support laptop-grade computation.
-* **Leakage-Proof Architecture:** Enforces strict strict separation of training and testing data matrices *prior* to any scaling or resampling, completely preventing future target leakage.
-* **Outlier-Resistant Scaling:** Applies Scikit-Learn's `RobustScaler` to raw transactional amounts and timeframes, relying on interquartile ranges rather than standard means to neutralize extreme financial anomalies.
-* **Hybrid Resampling Strategy:** Combines targeted deletion of majority "Normal" transactions with SMOTE (Synthetic Minority Over-sampling Technique) to map and artificially generate highly realistic "Fraud" points, perfectly balancing a dataset previously skewed at 319:1.
+* **Leakage-Proof Architecture:** Enforces strict separation of training and testing data matrices *prior* to any scaling or resampling, completely preventing future target leakage.
+* **Hybrid Resampling Strategy:** Combines targeted deletion of majority "Normal" transactions with SMOTE (Synthetic Minority Over-sampling) to artificially generate highly realistic "Fraud" points, perfectly balancing a skewed dataset.
+* **Baseline Classification Suite:** Implements a dual-algorithm approach, comparing a mathematically simple Logistic Regression baseline against a restricted-depth Random Forest ensemble to balance predictive power with hardware safety.
+* **Model Serialization:** Automatically exports trained algorithmic states as `.joblib` binary files, enabling instant, compute-free inference in future deployment environments without retraining.
 
 ---
 
 ## 🛠️ Tech Stack
 
 * **Language:** Python 3.x
-* **Numerical Processing:** NumPy (Vectorized matrix operations)
-* **Data Manipulation:** Pandas (High-performance CSV I/O and memory management)
-* **Preprocessing Suite:** Scikit-Learn (Train/test splitting and robust feature scaling)
-* **Class Balancing:** Imbalanced-Learn (SMOTE generation and algorithmic undersampling)
+* **Numerical Processing:** NumPy & Pandas
+* **Preprocessing & Modeling:** Scikit-Learn (Algorithms, Scaling, Splitting)
+* **Class Balancing:** Imbalanced-Learn (SMOTE & Undersampling)
+* **Artifact Persistence:** Joblib
 
 ---
 
@@ -79,7 +84,7 @@ cd FRAUD-DETECTION
 ```
 
 **2. Configure Environment & Dependencies:**
-Ensure you have a virtual environment (`.venv`) activated, then install the required foundational libraries:
+Ensure you have a virtual environment (`.venv`) activated, then install dependencies:
 
 ```bash
 pip install -r requirements.txt
@@ -104,3 +109,20 @@ python src/data_prep.py
 python src/resampling.py
 
 ```
+
+*Task 3 - Train Classifiers and Save Model Artifacts:*
+
+```bash
+python src/model.py
+
+```
+
+---
+
+## 🧩 Core Architecture Modules
+
+* **`data/raw/`**: Dedicated local repository for the heavy 66MB Kaggle CSV file. *(Ignored via .gitignore)*
+* **`models/`**: Dedicated local repository for saved binary model artifacts. *(Ignored via .gitignore to prevent repo bloat)*
+* **`src/data_prep.py`**: Gatekeeper for hardware optimization and data scaling.
+* **`src/resampling.py`**: Constructs an `imblearn` pipeline to sequentially chain Undersampling and SMOTE.
+* **`src/model.py`**: Instantiates, trains, and tests the Logistic Regression and Random Forest algorithms, managing `.joblib` state exports.
