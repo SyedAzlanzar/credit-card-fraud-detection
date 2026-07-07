@@ -10,7 +10,7 @@ This project is being built progressively to ensure high code quality and mathem
 * [x] **Day 1: System Architecture & Ingestion** — Structuring the repository, optimizing memory usage (`float64` to `float32`), and implementing leakage-proof Train/Test splits.
 * [x] **Day 2: The Equalizer** — Handling the 319:1 class imbalance using Imbalanced-Learn pipelines (Targeted Undersampling + SMOTE).
 * [x] **Day 3: Baseline Modeling (Current)** — Building, training, and serializing Logistic Regression and Random Forest classifiers on the balanced data.
-* [ ] **Day 4: Evaluation & Tuning** — Hyperparameter tuning via Randomized Search and generating Precision-Recall matrices.
+* [x] **Day 4: Evaluation & Tuning (Current)** — Hyperparameter tuning via Randomized Search and generating Matplotlib Precision-Recall matrices.
 * [ ] **Day 5: Orchestration & Deployment** — Finalizing the `main.py` pipeline and deploying the saved `.joblib` model via a lightweight API.
 
 ---
@@ -18,6 +18,7 @@ This project is being built progressively to ensure high code quality and mathem
 * 💾 **[Data Prep Module](src/data_prep.py)**: Memory-optimized data loader, train/test allocator, and outlier-resistant feature scaler.
 * ⚖️ **[Resampling Module](src/resampling.py)**: Mathematical class equalizer utilizing synthetic generation and targeted downsampling.
 * 🧠 **[Model Engine](src/model.py)**: The core machine learning training, prediction, and serialization module.
+* ⚙️ **[Optimization & Tuning](src/tune.py)**: Automated Randomized Search to mathematically optimize tree algorithms.
 * 📦 **[Requirements](requirements.txt)**: Strict dependency tracker ensuring environment reproducibility.
 
 ---
@@ -43,10 +44,16 @@ flowchart TD
 
     subgraph Machine Learning Engine [src/model.py]
         Under & Over -->|Balanced Data| ML[Classifier Training]
-        ML -->|Fast Baseline| LR[Logistic Regression]
-        ML -->|Hardware-Restricted Ensemble| RF[Random Forest]
-        LR & RF -->|Generate Guesses| TestSet
+        ML --> Tune[Randomized Search CV]
+        Tune -->|Best Params| RF[Optimized Random Forest]
         RF -->|Serialize State| Joblib[(random_forest_fraud_model.joblib)]
+    end
+
+    subgraph Evaluation & Reporting
+        Joblib & TestSet --> Eval[Scikit-Learn Metrics]
+        Joblib & TestSet --> Viz[Matplotlib Engine]
+        Eval --> Output1[\Terminal: Recall, Precision, F1/]
+        Viz --> Output2[(reports/rf_performance.png)]
     end
 
 ```
@@ -58,8 +65,9 @@ flowchart TD
 * **Memory-Optimized Ingestion:** Programmatically downcasts natively heavy 64-bit float arrays to 32-bit and 8-bit integers, effectively cutting RAM consumption in half to support laptop-grade computation.
 * **Leakage-Proof Architecture:** Enforces strict separation of training and testing data matrices *prior* to any scaling or resampling, completely preventing future target leakage.
 * **Hybrid Resampling Strategy:** Combines targeted deletion of majority "Normal" transactions with SMOTE (Synthetic Minority Over-sampling) to artificially generate highly realistic "Fraud" points, perfectly balancing a skewed dataset.
-* **Baseline Classification Suite:** Implements a dual-algorithm approach, comparing a mathematically simple Logistic Regression baseline against a restricted-depth Random Forest ensemble to balance predictive power with hardware safety.
-* **Model Serialization:** Automatically exports trained algorithmic states as `.joblib` binary files, enabling instant, compute-free inference in future deployment environments without retraining.
+* **Automated Hyperparameter Tuning: Implements Scikit-Learn's RandomizedSearchCV to automatically find the mathematical "sweet spot" for ensemble depth and splitting rules, optimized specifically for F1-Score.
+* **Business-Centric Evaluation:** Abandons standard "Accuracy" in favor of Precision, Recall, and Confusion Matrices to directly measure the real-world trade-off between catching fraud and minimizing customer false alarms.
+* **Visual Reporting:** Automatically plots and saves high-resolution Precision-Recall curves and Confusion Matrices using Matplotlib.
 
 ---
 
@@ -70,6 +78,7 @@ flowchart TD
 * **Preprocessing & Modeling:** Scikit-Learn (Algorithms, Scaling, Splitting)
 * **Class Balancing:** Imbalanced-Learn (SMOTE & Undersampling)
 * **Artifact Persistence:** Joblib
+* **Visualization:** Matplotlib
 
 ---
 
@@ -116,13 +125,21 @@ python src/resampling.py
 python src/model.py
 
 ```
+*Task 4 - Tune, Evaluate, and Visualize:*
+
+```bash
+python -m src.tune
+python src/evaluate.py
+python src/visualize.py
+
+```
 
 ---
 
 ## 🧩 Core Architecture Modules
 
-* **`data/raw/`**: Dedicated local repository for the heavy 66MB Kaggle CSV file. *(Ignored via .gitignore)*
-* **`models/`**: Dedicated local repository for saved binary model artifacts. *(Ignored via .gitignore to prevent repo bloat)*
-* **`src/data_prep.py`**: Gatekeeper for hardware optimization and data scaling.
-* **`src/resampling.py`**: Constructs an `imblearn` pipeline to sequentially chain Undersampling and SMOTE.
-* **`src/model.py`**: Instantiates, trains, and tests the Logistic Regression and Random Forest algorithms, managing `.joblib` state exports.
+* **`models/`**: Dedicated local repository for saved `.joblib` binary artifacts. *(Ignored via .gitignore)*
+* **`reports/`**: Output directory for generated `.png` graphs and visualizations.
+* **`src/tune.py`**: Executes Randomized Search Cross-Validation to mathematically extract the optimal hyperparameter dictionary.
+* **`src/evaluate.py`**: Cross-references isolated test data against model predictions to generate terminal-based Precision/Recall matrices.
+* **`src/visualize.py`**: Loads serialized `.joblib` models to generate exportable Matplotlib visualizations.
