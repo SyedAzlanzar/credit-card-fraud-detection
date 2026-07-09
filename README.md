@@ -11,7 +11,7 @@ This project is being built progressively to ensure high code quality and mathem
 * [x] **Day 2: The Equalizer** — Handling the 319:1 class imbalance using Imbalanced-Learn pipelines (Targeted Undersampling + SMOTE).
 * [x] **Day 3: Baseline Modeling (Current)** — Building, training, and serializing Logistic Regression and Random Forest classifiers on the balanced data.
 * [x] **Day 4: Evaluation & Tuning (Current)** — Hyperparameter tuning via Randomized Search and generating Matplotlib Precision-Recall matrices.
-* [ ] **Day 5: Orchestration & Deployment** — Finalizing the `main.py` pipeline and deploying the saved `.joblib` model via a lightweight API.
+* [x] **Day 5: Orchestration & Deployment** — Finalizing the `main.py` pipeline and deploying the saved `.joblib` model via a lightweight API.
 
 ---
 ## 🔗 System Components
